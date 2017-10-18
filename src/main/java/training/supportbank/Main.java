@@ -19,7 +19,7 @@ public class Main {
         printBanner();
 
         Scanner scanner = new Scanner(System.in);
-        while (true) {
+        while (scanner.hasNextLine()) {
             String command = scanner.nextLine();
             parseAndExecuteCommand(command, accounts);
         }
