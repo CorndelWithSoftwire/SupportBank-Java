@@ -1,5 +1,8 @@
 package training.supportbank;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -11,11 +14,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Main {
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance();
     private static final Pattern COMMAND_PATTERN = Pattern.compile("^List (.*)$");
 
     public static void main(String args[]) throws IOException {
-        Map<String, Account> accounts = TransactionsProcessor.buildAccountsFromCsv("Transactions2014.csv");
+        Map<String, Account> accounts = TransactionsProcessor.buildAccountsFromCsv("DodgyTransactions2015.csv");
         printBanner();
 
         Scanner scanner = new Scanner(System.in);
@@ -26,6 +30,7 @@ public class Main {
     }
 
     private static void printBanner() {
+        LOGGER.debug("SupportBank starting up!");
         System.out.println("Welcome to SupportBank!");
         System.out.println("=======================");
         System.out.println();
