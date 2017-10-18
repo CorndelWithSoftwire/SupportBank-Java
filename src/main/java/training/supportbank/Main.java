@@ -19,6 +19,7 @@ public class Main {
     private static final Pattern COMMAND_PATTERN = Pattern.compile("^List (.*)$");
 
     public static void main(String args[]) throws IOException {
+        LOGGER.info("SupportBank starting up!");
         Map<String, Account> accounts = TransactionsProcessor.buildAccountsFromCsv("DodgyTransactions2015.csv");
         printBanner();
 
@@ -27,10 +28,10 @@ public class Main {
             String command = scanner.nextLine();
             parseAndExecuteCommand(command, accounts);
         }
+        LOGGER.info("SupportBank closed!");
     }
 
     private static void printBanner() {
-        LOGGER.debug("SupportBank starting up!");
         System.out.println("Welcome to SupportBank!");
         System.out.println("=======================");
         System.out.println();
@@ -50,10 +51,13 @@ public class Main {
             } else {
                 listSingleAccount(accounts.get(accountName));
             }
+        } else {
+            LOGGER.warn("Did not recognise command: "+ command);
         }
     }
 
     private static void listAllAccounts(Collection<Account> accounts) {
+        LOGGER.debug("Listing all accounts");
         System.out.println("All accounts");
 
         for (Account account : accounts) {
@@ -67,6 +71,7 @@ public class Main {
     }
 
     private static void listSingleAccount(Account account) {
+        LOGGER.debug("Listing account for " + account.getOwner());
         System.out.println("Account " + account.getOwner());
 
         for (Transaction transaction : account.getAllTransactionsInDateOrder()) {
