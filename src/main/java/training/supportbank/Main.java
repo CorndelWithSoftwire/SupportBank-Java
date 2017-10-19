@@ -4,29 +4,25 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.text.NumberFormat;
-import java.time.format.DateTimeFormatter;
-import java.util.Collection;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class Main {
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance();
-    private static final Pattern COMMAND_PATTERN = Pattern.compile("^List (.*)$");
+
+    private static Bank bank = new Bank();
 
     public static void main(String args[]) throws IOException {
         LOGGER.info("SupportBank starting up!");
-        Map<String, Account> accounts = TransactionsProcessor.buildAccountsFromCsv("DodgyTransactions2015.csv");
+
         printBanner();
+        showPrompt();
 
         Scanner scanner = new Scanner(System.in);
         while (scanner.hasNextLine()) {
             String command = scanner.nextLine();
-            parseAndExecuteCommand(command, accounts);
+            parseAndExecuteCommand(command);
+            showPrompt();
         }
         LOGGER.info("SupportBank closed!");
     }
@@ -38,52 +34,50 @@ public class Main {
         System.out.println("Available commands:");
         System.out.println("  List All - list all account balances");
         System.out.println("  List [Account] - list transactions for the specified account");
+        System.out.println("  Import File [Filename] - import transactions from the specified file");
         System.out.println();
     }
 
-    private static void parseAndExecuteCommand(String command, Map<String, Account> accounts) {
-        Matcher matcher = COMMAND_PATTERN.matcher(command);
+    private static void showPrompt() {
+        System.out.print("Enter command > ");
+    }
 
-        if (matcher.find()) {
-            String accountName = matcher.group(1);
+    private static void parseAndExecuteCommand(String command) {
+        if (command.startsWith("Import File ")) {
+            String filename = command.substring("Import File ".length());
+            importFile(filename);
+        } else if (command.startsWith("List ")) {
+            String accountName = command.substring("List ".length());
             if (accountName.equals("All")) {
-                listAllAccounts(accounts.values());
+                AccountLister.listAccounts(bank.getAllAccounts());
             } else {
-                listSingleAccount(accounts.get(accountName));
+                AccountLister.listSingleAccount(bank.getAccount(accountName));
             }
         } else {
-            LOGGER.warn("Did not recognise command: "+ command);
+            LOGGER.warn("Did not recognise command: " + command);
+            System.out.println("Did not understand the command: " + command);
         }
     }
 
-    private static void listAllAccounts(Collection<Account> accounts) {
-        LOGGER.debug("Listing all accounts");
-        System.out.println("All accounts");
+    private static void importFile(String filename) {
+        LOGGER.info("Importing file " +  filename);
+        Parser parser = Parser.forFilename(filename);
 
-        for (Account account : accounts) {
-            BigDecimal balance = account.calculateBalance();
-            String owingMessage = balance.compareTo(BigDecimal.ZERO) < 0 ? "owes" : "is owed";
-            String balanceString = CURRENCY_FORMAT.format(balance.abs());
-            System.out.println("  " + account.getOwner() + " " + owingMessage + " " + balanceString);
+        if (parser == null) {
+            LOGGER.error("No parser found for filename " + filename);
+            System.out.println("Do not know how to parse file '" + filename + "', skipping it!");
+            return;
         }
 
-        System.out.println();
-    }
+        try{
+            Stream<Transaction> transactions = parser.readFile(filename);
+            bank.processAccounts(transactions);
+            LOGGER.info("Import of file '" + filename + "' succeeded");
+            System.out.println("Import successful!");
 
-    private static void listSingleAccount(Account account) {
-        LOGGER.debug("Listing account for " + account.getOwner());
-        System.out.println("Account " + account.getOwner());
-
-        for (Transaction transaction : account.getAllTransactionsInDateOrder()) {
-            System.out.println(String.format("  %s: %s paid %s %s for %s",
-                    transaction.getDate().format(DateTimeFormatter.ISO_LOCAL_DATE),
-                    transaction.getFrom(),
-                    transaction.getTo(),
-                    CURRENCY_FORMAT.format(transaction.getAmount()),
-                    transaction.getNarrative()
-            ));
+        } catch (IOException e) {
+            LOGGER.error(String.format("Error opening file '%s'", filename), e);
+            System.out.println("Error opening file - import failed");
         }
-
-        System.out.println();
     }
 }
