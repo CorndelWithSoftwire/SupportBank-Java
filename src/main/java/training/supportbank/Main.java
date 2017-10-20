@@ -75,7 +75,7 @@ public class Main {
             LOGGER.info("Import of file '" + filename + "' succeeded");
             System.out.println("Import successful!");
 
-        } catch (IOException e) {
+        } catch (FileParsingException e) {
             LOGGER.error(String.format("Error opening file '%s'", filename), e);
             System.out.println("Error opening file - import failed");
         }

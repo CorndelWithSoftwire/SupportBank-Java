@@ -19,11 +19,14 @@ public class CsvParser implements Parser {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @Override
-    public Stream<Transaction> readFile(String filename) throws IOException {
+    public Stream<Transaction> readFile(String filename) throws FileParsingException {
         LOGGER.info("Reading CSV file " + filename);
-        List<String> lines = Files.readAllLines(Paths.get(filename));
-
-        return lines.stream().skip(1).map(CsvParser::processLine).filter(Optional::isPresent).map(Optional::get);
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(filename));
+            return lines.stream().skip(1).map(CsvParser::processLine).filter(Optional::isPresent).map(Optional::get);
+        } catch (IOException e) {
+            throw new FileParsingException(e);
+        }
     }
 
     private static Optional<Transaction> processLine(String line) {
